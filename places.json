@@ -1,7 +1,7 @@
 ﻿{
   "loaderVersion": "2.0",
-  "repository": "Unwalker1337/Nullfire-rework",
-  "defaultScript": null,
+  "repository": "Unwalker1337/Nullfire-rework", 
+  "defaultScript": "ABrokenDream",
   "places": {
     "4483381587": {
       "name": "A Broken Dream",
@@ -11,7 +11,7 @@
   "scripts": {
     "ABrokenDream": {
       "name": "A Broken Dream",
-      "description": "Music control, teleports, NPC interactions, ESP",
+      "description": "Музыка, телепорты, NPC, эффекты, читы",
       "path": "scripts/ABrokenDream.lua"
     }
   }
