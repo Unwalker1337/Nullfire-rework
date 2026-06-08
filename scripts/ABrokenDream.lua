@@ -29,8 +29,21 @@ local ws = workspace
 local ts = game:GetService("TweenService")
 local ls = game:GetService("Lighting")
 
-repeat task.wait() until ws:GetAttribute("ClientLoadedIn")
-repeat task.wait() until lp:GetAttribute("SetUpPlayerFully")
+-- ожидание с таймаутом 15 секунд
+do
+    local t = 0
+    repeat task.wait(0.5); t = t + 0.5 until ws:GetAttribute("ClientLoadedIn") or t > 15
+    if not ws:GetAttribute("ClientLoadedIn") then
+        Library:Notify("Ошибка: ClientLoadedIn не найден. UI может работать нестабильно.", 5)
+    end
+end
+do
+    local t = 0
+    repeat task.wait(0.5); t = t + 0.5 until lp:GetAttribute("SetUpPlayerFully") or t > 15
+    if not lp:GetAttribute("SetUpPlayerFully") then
+        Library:Notify("Ошибка: SetUpPlayerFully не найден. UI может работать нестабильно.", 5)
+    end
+end
 
 local LobbyMusic = rs:WaitForChild("LobbyMusic")
 local OSTScreen = lp:WaitForChild("PlayerGui"):WaitForChild("OSTTVScreen")
