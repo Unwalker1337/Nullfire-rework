@@ -2,24 +2,25 @@
     NullFire Hub - A Broken Dream
     https://github.com/Unwalker1337/Nullfire-rework
 --]]
-local repo = 'https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/'
+
+local repo = "https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 
 local Window = Library:CreateWindow({
-    Title = 'NullFire Hub - A Broken Dream',
+    Title = "NullFire Hub - A Broken Dream",
     Center = true, AutoShow = true, TabPadding = 8, MenuFadeTime = 0.2
 })
 
 local Tabs = {
-    Music = Window:AddTab('Музыка'),
-    Player = Window:AddTab('Игрок'),
-    Teleports = Window:AddTab('Телепорты'),
-    NPC = Window:AddTab('NPC'),
-    World = Window:AddTab('Мир'),
-    Effects = Window:AddTab('Эффекты'),
-    UI = Window:AddTab('Настройки UI'),
+    Music = Window:AddTab("Музыка"),
+    Player = Window:AddTab("Игрок"),
+    Teleports = Window:AddTab("Телепорты"),
+    NPC = Window:AddTab("NPC"),
+    World = Window:AddTab("Мир"),
+    Effects = Window:AddTab("Эффекты"),
+    UI = Window:AddTab("Настройки"),
 }
 
 local lp = game.Players.LocalPlayer
@@ -27,7 +28,6 @@ local rs = game:GetService("ReplicatedStorage")
 local ws = workspace
 local ts = game:GetService("TweenService")
 local ls = game:GetService("Lighting")
-local uis = game:GetService("UserInputService")
 
 repeat task.wait() until ws:GetAttribute("ClientLoadedIn")
 repeat task.wait() until lp:GetAttribute("SetUpPlayerFully")
@@ -38,33 +38,32 @@ local SpeechGui = lp:WaitForChild("PlayerGui"):WaitForChild("SpeechGui")
 local DonationGui = lp:WaitForChild("PlayerGui"):WaitForChild("DonationGui")
 local ScreenFX = lp:WaitForChild("PlayerGui"):FindFirstChild("ScreenEffectGui")
 
-local function remote(name) return rs:FindFirstChild(name) end
-local function fireSrv(name, ...)
-    local r = remote(name)
-    if r then r:FireServer(...) end
-end
-local function fireCl(name, ...)
-    local r = remote(name)
-    if r then r:Fire(...) end
-end
-local function sayThing(text, opts)
-    opts = opts or {"InfoText"}
-    fireCl("SayThing", text, opts)
-end
-local function notify(text, time)
-    Library:Notify(text, time or 3)
-end
-local function tpTo(cf)
+local function rmt(n) return rs:FindFirstChild(n) end
+local function fsrv(n, ...) local r = rmt(n); if r then r:FireServer(...) end end
+local function fcl(n, ...) local r = rmt(n); if r then r:Fire(...) end end
+local function say(t, o) fcl("SayThing", t, o or {"InfoText"}) end
+local function nfy(t, tm) Library:Notify(t, tm or 3) end
+local function tp(cf)
     if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
         lp.Character.HumanoidRootPart.CFrame = cf
     end
 end
-local function tpWithFire(cf, rn)
-    tpTo(cf)
-    if rn then fireSrv(rn) end
+local function tpf(cf, r) tp(cf); if r then fsrv(r) end end
+
+local function getDreamEntries()
+    local entries = {}
+    local stored = lp:FindFirstChild("StoredThings")
+    if stored then
+        for _, c in pairs(stored:GetChildren()) do
+            if c.Name == "DreamEntry" and c:IsA("StringValue") then
+                table.insert(entries, c.Value)
+            end
+        end
+    end
+    return entries
 end
 
--- ===== MUZYKA =====
+-- ===================== MUZYKA =====================
 local MusicGroup = Tabs.Music:AddLeftGroupbox("Музыкальный плеер")
 
 local function getTracks()
@@ -78,11 +77,11 @@ end
 
 local function getTrackNames()
     local n = {}
-    for _, t in ipairs(getTracks()) do
-        table.insert(n, t:GetAttribute("RealName") or "Трек " .. t.Name)
-    end
+    for _, t in ipairs(getTracks()) do table.insert(n, t:GetAttribute("RealName") or "Трек " .. t.Name) end
     return n
-endlocal TrackLabel
+end
+
+local TrackLabel
 local function updateTrackLabel()
     local tracks = getTracks()
     local idx
@@ -90,10 +89,9 @@ local function updateTrackLabel()
         if t.SoundId == LobbyMusic.SoundId then idx = i; break end
     end
     if idx then
-        local name = tracks[idx]:GetAttribute("RealName") or "Track " .. tracks[idx].Name
-        TrackLabel:SetText("Now: " .. name .. " (" .. idx .. "/" .. #tracks .. ")")
+        TrackLabel:SetText("Сейчас: " .. (tracks[idx]:GetAttribute("RealName") or "Трек " .. tracks[idx].Name) .. " (" .. idx .. "/" .. #tracks .. ")")
     else
-        TrackLabel:SetText("Stopped")
+        TrackLabel:SetText("Не играет")
     end
 end
 
@@ -119,38 +117,37 @@ local function switchTrack(delta)
             LobbyMusic.PlaybackRegionsEnabled = false
         end
         LobbyMusic:Play()
+        nfy("Трек: " .. (tr:GetAttribute("RealName") or "Трек " .. tr.Name))
         updateTrackLabel()
     end
 end
 
-TrackLabel = MusicGroup:AddLabel("Scanning...")
-MusicGroup:AddButton({ Text = "Prev", Func = function() switchTrack(-1) end })
-MusicGroup:AddButton({ Text = "Next", Func = function() switchTrack(1) end })
-MusicGroup:AddButton({ Text = "Refresh", Func = updateTrackLabel })
+TrackLabel = MusicGroup:AddLabel("Сканирование...")
+MusicGroup:AddButton({ Text = "Предыдущий трек", Func = function() switchTrack(-1) end })
+MusicGroup:AddButton({ Text = "Следующий трек", Func = function() switchTrack(1) end })
+MusicGroup:AddButton({ Text = "Обновить", Func = updateTrackLabel })
 MusicGroup:AddDivider()
+
 MusicGroup:AddSlider("MusicVolume", {
-    Text = "Volume", Default = 100, Min = 0, Max = 200, Rounding = 0, Suffix = "%",
+    Text = "Громкость", Default = 100, Min = 0, Max = 200, Rounding = 0, Suffix = "%",
     Callback = function(v) LobbyMusic.Volume = v / 100 end
 })
-MusicGroup:AddToggle("MusicAutoNext", {
-    Text = "Auto next", Default = false,
-})
+
+MusicGroup:AddToggle("MusicAutoNext", { Text = "Авто переключение", Default = false })
+
 task.spawn(function()
     while task.wait(0.5) do
-        if Toggles.MusicAutoNext and not LobbyMusic.Playing then
-            switchTrack(1)
-        end
+        if Toggles.MusicAutoNext and not LobbyMusic.Playing then switchTrack(1) end
     end
 end)
 
-local PlaylistGroup = Tabs.Music:AddRightGroupbox("Playlist")
+local PlaylistGroup = Tabs.Music:AddRightGroupbox("Плейлист")
 PlaylistGroup:AddDropdown("TrackSelect", {
-    Values = getTrackNames(), Default = 1, Text = "Jump to track",
+    Values = getTrackNames(), Default = 1, Text = "Перейти к треку",
     Callback = function(val)
         local tracks = getTracks()
         for i, t in ipairs(tracks) do
-            local name = t:GetAttribute("RealName") or "Track " .. t.Name
-            if name == val then
+            if (t:GetAttribute("RealName") or "Трек " .. t.Name) == val then
                 LobbyMusic:Stop()
                 LobbyMusic.Volume = t.Volume
                 LobbyMusic.SoundId = t.SoundId
@@ -168,69 +165,52 @@ PlaylistGroup:AddDropdown("TrackSelect", {
         end
     end
 })
+
 PlaylistGroup:AddDivider()
-local listLabel = PlaylistGroup:AddLabel("Loading...", true)
+local listLabel = PlaylistGroup:AddLabel("Загрузка...", true)
 local function refreshTrackInfo()
     local tracks = getTracks()
     local lines = {}
     for i, t in ipairs(tracks) do
-        local name = t:GetAttribute("RealName") or "Track " .. t.Name
-        local unused = t:GetAttribute("Unused") and " [hidden]" or ""
+        local name = t:GetAttribute("RealName") or "Трек " .. t.Name
+        local unused = t:GetAttribute("Unused") and " [скрыт]" or ""
         table.insert(lines, i .. ". " .. name .. unused)
     end
-    if #lines == 0 then table.insert(lines, "No tracks") end
+    if #lines == 0 then table.insert(lines, "Нет треков") end
     listLabel:SetText(table.concat(lines, "\n"))
 end
-PlaylistGroup:AddButton({ Text = "Refresh", Func = refreshTrackInfo })
+PlaylistGroup:AddButton({ Text = "Обновить", Func = refreshTrackInfo })
 task.delay(0.5, refreshTrackInfo)
--- ===== PLAYER =====
-local PlayerGroup = Tabs.Player:AddLeftGroupbox("Player Info")
-PlayerGroup:AddLabel("Chapter 2: " .. (lp:GetAttribute("CompletedCH2Binary") or "0"))
-PlayerGroup:AddLabel("Device: " .. (lp:GetAttribute("device") or "PC"))
 
-local function getDreamEntries()
-    local entries = {}
-    local stored = lp:FindFirstChild("StoredThings")
-    if stored then
-        for _, c in pairs(stored:GetChildren()) do
-            if c.Name == "DreamEntry" and c:IsA("StringValue") then
-                table.insert(entries, c.Value)
-            end
-        end
-    end
-    return entries
-end
+-- ===================== PLAYER =====================
+local PlayerGroup = Tabs.Player:AddLeftGroupbox("Информация")
+PlayerGroup:AddLabel("Chapter 2: " .. (lp:GetAttribute("CompletedCH2Binary") or "0"))
+PlayerGroup:AddLabel("Устройство: " .. (lp:GetAttribute("device") or "ПК"))
 
 PlayerGroup:AddDivider()
 PlayerGroup:AddLabel("Dream Entries:", false)
-local dreamEntryLabel = PlayerGroup:AddLabel("Loading...", true)
+local dreamEntryLabel = PlayerGroup:AddLabel("Загрузка...", true)
 local function updateDreamEntries()
     local e = getDreamEntries()
-    dreamEntryLabel:SetText(#e > 0 and table.concat(e, ", ") or "None")
+    dreamEntryLabel:SetText(#e > 0 and table.concat(e, ", ") or "Нет")
 end
 task.delay(0.5, updateDreamEntries)
 
 PlayerGroup:AddDivider()
-PlayerGroup:AddLabel("Attributes:", false)
+PlayerGroup:AddLabel("Атрибуты:", false)
 local attrsLabel = PlayerGroup:AddLabel("", true)
 local function refreshAttrs()
-    local a = {
-        CompletedCH2Binary = lp:GetAttribute("CompletedCH2Binary"),
-        device = lp:GetAttribute("device"),
-        HasAeroportTicket = lp:GetAttribute("HasAeroportTicket"),
-        SetUpPlayerFully = lp:GetAttribute("SetUpPlayerFully"),
-    }
     local lines = {}
-    for k, v in pairs(a) do
-        table.insert(lines, k .. " = " .. tostring(v))
+    for _, k in ipairs({"CompletedCH2Binary","device","HasAeroportTicket","SetUpPlayerFully"}) do
+        table.insert(lines, k .. " = " .. tostring(lp:GetAttribute(k)))
     end
     attrsLabel:SetText(table.concat(lines, "\n"))
 end
-PlayerGroup:AddButton({ Text = "Refresh Attributes", Func = refreshAttrs })
+PlayerGroup:AddButton({ Text = "Обновить", Func = refreshAttrs })
 
-local PlayerSettings = Tabs.Player:AddRightGroupbox("Settings")
+local PlayerSettings = Tabs.Player:AddRightGroupbox("Настройки")
 PlayerSettings:AddToggle("UnlockMusic", {
-    Text = "Unlock OST", Default = true,
+    Text = "Разблокировать OST", Default = true,
     Callback = function(v)
         local f = OSTScreen:FindFirstChild("Frame")
         local c = OSTScreen:FindFirstChild("CantAccessText")
@@ -238,7 +218,8 @@ PlayerSettings:AddToggle("UnlockMusic", {
         if c then c.Visible = not v end
     end
 })
-PlayerSettings:AddToggle("NoCutscene", { Text = "Block cutscenes", Default = false })
+
+PlayerSettings:AddToggle("NoCutscene", { Text = "Блокировать катсцены", Default = false })
 task.spawn(function()
     while task.wait(1) do
         if Toggles.NoCutscene and ws:GetAttribute("Cutscene") then
@@ -246,12 +227,11 @@ task.spawn(function()
         end
     end
 end)
-PlayerSettings:AddToggle("UnanchorOnCutscene", {
-    Text = "Unanchor in cutscene", Default = false
-})
+
+PlayerSettings:AddToggle("UnanchorCutscene", { Text = "Открепить при катсцене", Default = false })
 task.spawn(function()
     while task.wait(0.5) do
-        if Toggles.UnanchorOnCutscene and ws:GetAttribute("Cutscene") then
+        if Toggles.UnanchorCutscene and ws:GetAttribute("Cutscene") then
             if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
                 lp.Character.HumanoidRootPart.Anchored = false
             end
@@ -261,67 +241,59 @@ end)
 
 PlayerSettings:AddDivider()
 PlayerSettings:AddButton({ Text = "Force Nod (-5)", Func = function()
-    local fn = remote("ForceNod")
-    if fn then fn:Fire(-5) end
+    local fn = rmt("ForceNod"); if fn then fn:Fire(-5) end
 end})
 PlayerSettings:AddButton({ Text = "Force FOV (-15)", Func = function()
-    local fov = remote("ForceFOVBindable")
-    if fov then fov:Fire(-15, 0.5) end
+    local fov = rmt("ForceFOVBindable"); if fov then fov:Fire(-15, 0.5) end
 end})
-PlayerSettings:AddButton({ Text = "Screenshake", Func = function()
-    local sh = remote("ScreenshakeBindable")
-    if sh then sh:Fire(3) end
+PlayerSettings:AddButton({ Text = "Screenshake (3)", Func = function()
+    local sh = rmt("ScreenshakeBindable"); if sh then sh:Fire(3) end
 end})
 
 PlayerSettings:AddDivider()
-PlayerSettings:AddLabel("Donations:", false)
-local donatProducts = {
-    {"Donation 1 (3344306026)", 3344306026},
-    {"Donation 2 (3344306942)", 3344306942},
-    {"Donation 3 (3344307148)", 3344307148},
-    {"Donation 4 (3344307629)", 3344307629},
-}
-for _, item in ipairs(donatProducts) do
-    PlayerSettings:AddButton({ Text = "Buy " .. item[1], Func = function()
+PlayerSettings:AddLabel("Донат:")
+for _, item in ipairs({{"Донат 1",3344306026},{"Донат 2",3344306942},{"Донат 3",3344307148},{"Донат 4",3344307629}}) do
+    PlayerSettings:AddButton({ Text = "Купить " .. item[1], Func = function()
         game:GetService("MarketplaceService"):PromptProductPurchase(lp, item[2])
     end})
 end
--- ===== TELEPORTS =====
-local TpLobby = Tabs.Teleports:AddLeftGroupbox("Lobby")
+
+-- ===================== TELEPORTS =====================
+local TpLobby = Tabs.Teleports:AddLeftGroupbox("Лобби")
 TpLobby:AddButton({ Text = "Main Hall Spawn", Func = function()
     local s = ws:FindFirstChild("SpawnLocations")
     if s then
         local loc = s:FindFirstChild("MainHallSpawnLocation")
-        if loc then tpWithFire(loc.CFrame, "selfTeleported") end
+        if loc then tpf(loc.CFrame, "selfTeleported") end
     end
 end})
-TpLobby:AddButton({ Text = "Exit Main Hall", Func = function()
+TpLobby:AddButton({ Text = "Выход Main Hall", Func = function()
     local cf = ws:GetAttribute("ExitMainHallCFrame")
-    if cf then tpWithFire(cf, "selfTeleported") end
+    if cf then tpf(cf, "selfTeleported") end
 end})
-TpLobby:AddButton({ Text = "Exit Outside Minigame", Func = function()
+TpLobby:AddButton({ Text = "Выход Outside Minigame", Func = function()
     local cf = ws:GetAttribute("ExitOutsideMinigameCFrame")
-    if cf then tpWithFire(cf, "selfTeleported") end
+    if cf then tpf(cf, "selfTeleported") end
 end})
 
 TpLobby:AddDivider()
-TpLobby:AddLabel("Secrets:")
-TpLobby:AddButton({ Text = "Secret Main Hall", Func = function()
+TpLobby:AddLabel("Секретки:")
+TpLobby:AddButton({ Text = "Секретный Main Hall", Func = function()
     local cf = ws:GetAttribute("SecretMainHallCFrame")
-    if cf then tpWithFire(cf, "selfTeleported") end
+    if cf then tpf(cf, "selfTeleported") end
 end})
-TpLobby:AddButton({ Text = "Secret Exit", Func = function()
+TpLobby:AddButton({ Text = "Секретный выход", Func = function()
     local cf = ws:GetAttribute("SecretExitCFrame")
-    if cf then tpWithFire(cf, "selfTeleported") end
+    if cf then tpf(cf, "selfTeleported") end
 end})
 
 TpLobby:AddDivider()
-TpLobby:AddLabel("Cloud Theater Fall:")
-TpLobby:AddButton({ Text = "Fall into clouds", Func = function()
+TpLobby:AddLabel("Падение в облака:")
+TpLobby:AddButton({ Text = "Упасть", Func = function()
     if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-        local fallSpawns = ws:FindFirstChild("FallCatcherSpawns")
-        if fallSpawns then
-            local sp = fallSpawns:FindFirstChild("CatcherSpawn")
+        local fall = ws:FindFirstChild("FallCatcherSpawns")
+        if fall then
+            local sp = fall:FindFirstChild("CatcherSpawn")
             if sp then
                 ws:SetAttribute("Cutscene", true)
                 lp.Character.HumanoidRootPart.Anchored = true
@@ -330,104 +302,89 @@ TpLobby:AddButton({ Text = "Fall into clouds", Func = function()
                     CFrame = sp.CFrame - Vector3.new(0, 136, 0)
                 }):Play()
                 local fb = ls:FindFirstChild("FallBright")
-                if fb then
-                    fb.Brightness = 1
-                    ts:Create(fb, TweenInfo.new(1), {Brightness = 0}):Play()
-                end
+                if fb then fb.Brightness = 1; ts:Create(fb, TweenInfo.new(1), {Brightness = 0}):Play() end
                 ws:SetAttribute("WindFalling", true)
                 task.delay(4, function()
                     ws:SetAttribute("WindFalling", nil)
                     ws:SetAttribute("Cutscene", nil)
-                    lp.Character.HumanoidRootPart.Anchored = false
-                    local fn = remote("ForceNod")
-                    if fn then fn:Fire(-5) end
-                    fireSrv("FellIntoCloud")
-                    local sh = remote("ScreenshakeBindable")
-                    if sh then sh:Fire(3) end
+                    if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+                        lp.Character.HumanoidRootPart.Anchored = false
+                    end
+                    local fn = rmt("ForceNod"); if fn then fn:Fire(-5) end
+                    fsrv("FellIntoCloud")
+                    local sh = rmt("ScreenshakeBindable"); if sh then sh:Fire(3) end
                 end)
             end
         end
     end
 end})
 
-local WarpGroup = Tabs.Teleports:AddRightGroupbox("Zones & Warps")
-
-local function scanWarpParts()
-    WarpGroup:AddLabel("Warp Teleports:", false)
+local WarpGroup = Tabs.Teleports:AddRightGroupbox("Зоны")
+local function scanWarps()
     for _, c in pairs(ws:GetDescendants()) do
         if c.Name == "WarpTeleportPart" and c:IsA("BasePart") and c:GetAttribute("WarpTo") then
-            local target = c.Parent and c.Parent.Name or "Warp"
-            WarpGroup:AddButton({ Text = "Warp: " .. target, Func = function()
-                local warp = c:GetAttribute("WarpTo")
-                if warp and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-                    lp.Character.HumanoidRootPart.CFrame = warp
-                    local w = remote("WarpSound")
-                    if w then w:Play() end
-                    local fov = remote("ForceFOVBindable")
-                    if fov then fov:Fire(-15, 0.5) end
-                end
+            WarpGroup:AddButton({ Text = "Warp: " .. (c.Parent and c.Parent.Name or "?"), Func = function()
+                local w = c:GetAttribute("WarpTo")
+                if w then tp(w) end
             end})
         end
     end
 end
-WarpGroup:AddButton({ Text = "Scan Warps", Func = scanWarpParts })
-task.delay(1, scanWarpParts)
+WarpGroup:AddButton({ Text = "Сканировать Warp", Func = scanWarps })
+task.delay(1, scanWarps)
 
 WarpGroup:AddDivider()
-WarpGroup:AddLabel("Forcefield Borders:", false)
+WarpGroup:AddLabel("Forcefield Borders:")
 local function scanFF()
     for _, c in pairs(ws:GetDescendants()) do
         if c.Name:match("ForcefieldBorder") and c:IsA("BasePart") and c:GetAttribute("SideRelationship") then
             WarpGroup:AddButton({ Text = "FF: " .. c.Name, Func = function()
                 if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
                     lp.Character.HumanoidRootPart.CFrame = lp.Character.HumanoidRootPart.CFrame + c:GetAttribute("SideRelationship") * 370
-                    fireSrv("HeyITeleported")
+                    fsrv("HeyITeleported")
                 end
             end})
         end
     end
 end
-WarpGroup:AddButton({ Text = "Scan Forcefields", Func = scanFF })
+WarpGroup:AddButton({ Text = "Сканировать", Func = scanFF })
 task.delay(1.5, scanFF)
 
 WarpGroup:AddDivider()
-WarpGroup:AddLabel("Blink Borders:", false)
+WarpGroup:AddLabel("Blink Borders:")
 local function scanBlink()
     for _, c in pairs(ws:GetDescendants()) do
         if c.Name == "BlinkBorder" and c:IsA("BasePart") then
             WarpGroup:AddButton({ Text = "Blink: " .. (c.Parent and c.Parent.Name or "?"), Func = function()
                 if ws:GetAttribute("Cutscene") then return end
-                local goBack = c:GetAttribute("GoBackPlace")
-                if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-                    lp.Character.HumanoidRootPart.CFrame = goBack or (lp.Character:GetAttribute("WhereSpawned") or lp.Character.HumanoidRootPart.CFrame)
-                end
+                local gb = c:GetAttribute("GoBackPlace")
+                tp(gb or (lp.Character and lp.Character:GetAttribute("WhereSpawned")) or CFrame.new())
             end})
         end
     end
 end
-WarpGroup:AddButton({ Text = "Scan Blink", Func = scanBlink })
+WarpGroup:AddButton({ Text = "Сканировать", Func = scanBlink })
 task.delay(2, scanBlink)
 
-local DoorGroup = Tabs.Teleports:AddLeftGroupbox("Sub-place Doors")
+local DoorGroup = Tabs.Teleports:AddLeftGroupbox("Двери в миры")
 local function scanDoors()
     for _, c in pairs(ws:GetDescendants()) do
         if c.Name == "LobbyTeleportDoor" and c:IsA("BasePart") then
             local pid = c:GetAttribute("TeleportPlaceID") or "?"
-            local dname = (c.Parent and c.Parent.Name) or "Door"
-            DoorGroup:AddButton({ Text = dname .. " [Place: " .. pid .. "]", Func = function()
-                tpTo(c.CFrame * CFrame.new(0, 0, -5))
-                if pid ~= "?" then fireSrv("LobbyDoorTP", pid) end
+            DoorGroup:AddButton({ Text = "Дверь [" .. pid .. "]", Func = function()
+                tp(c.CFrame * CFrame.new(0, 0, -5))
+                if pid ~= "?" then fsrv("LobbyDoorTP", pid) end
             end})
         end
     end
 end
-DoorGroup:AddButton({ Text = "Scan Doors", Func = scanDoors })
+DoorGroup:AddButton({ Text = "Сканировать", Func = scanDoors })
 task.delay(1, scanDoors)
--- ===== NPC =====
-local NPCGroup = Tabs.NPC:AddLeftGroupbox("NPC Dialogues")
-local npcNames = {"Minecraftpeter", "SnoogleBrosPlayz"}
-NPCGroup:AddDropdown("SelectNPC", { Values = npcNames, Default = 1, Text = "Select NPC" })
-NPCGroup:AddButton({ Text = "Trigger Prompt", Func = function()
+
+-- ===================== NPC =====================
+local NPCGroup = Tabs.NPC:AddLeftGroupbox("Диалоги")
+NPCGroup:AddDropdown("SelectNPC", { Values = {"Minecraftpeter","SnoogleBrosPlayz"}, Default = 1, Text = "NPC" })
+NPCGroup:AddButton({ Text = "Активировать диалог", Func = function()
     local name = Options.SelectNPC.Value
     local npcs = ws:FindFirstChild("RigNPCS")
     if npcs then
@@ -436,57 +393,40 @@ NPCGroup:AddButton({ Text = "Trigger Prompt", Func = function()
             local root = char:FindFirstChild("HumanoidRootPart")
             if root then
                 local prompt = root:FindFirstChild("ProximityPrompt")
-                if prompt then fireSrv("ProximityPromptTriggered", prompt) end
+                if prompt then fsrv("ProximityPromptTriggered", prompt) end
             end
         end
     end
 end})
-NPCGroup:AddButton({ Text = "Teleport to NPC", Func = function()
+NPCGroup:AddButton({ Text = "Телепорт к NPC", Func = function()
     local name = Options.SelectNPC.Value
     local npcs = ws:FindFirstChild("RigNPCS")
     if npcs then
         local char = npcs:FindFirstChild(name)
-        if char and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+        if char then
             local root = char:FindFirstChild("HumanoidRootPart")
-            if root then lp.Character.HumanoidRootPart.CFrame = root.CFrame * CFrame.new(0,0,-3) end
+            if root and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+                lp.Character.HumanoidRootPart.CFrame = root.CFrame * CFrame.new(0,0,-3)
+            end
         end
     end
 end})
 
 NPCGroup:AddDivider()
-NPCGroup:AddLabel("SnoogleBrosPlayz custom text:")
-NPCGroup:AddInput("CustomNPCText", {
-    Default = "", Text = "Text", Placeholder = "Enter...",
-    Callback = function(val)
-        if val ~= "" then fireCl("MakeSnoogleSaySomething", val) end
-    end
-})
-NPCGroup:AddLabel("Display bubble at Snoogle:")
-NPCGroup:AddInput("BubbleText", {
-    Default = "", Text = "Bubble", Placeholder = "Bubble text...",
-    Callback = function(val)
-        if val ~= "" then
-            local tcs = game:GetService("TextChatService")
-            local sn = ws:FindFirstChild("RigNPCS")
-            if sn then
-                local sno = sn:FindFirstChild("SnoogleBrosPlayz")
-                if sno and sno:FindFirstChild("Head") then
-                    tcs:DisplayBubble(sno.Head, val)
-                end
-            end
-        end
-    end
+NPCGroup:AddLabel("SnoogleBrosPlayz текст:")
+NPCGroup:AddInput("CustomNPCText", { Default = "", Text = "Текст", Placeholder = "Введи...",
+    Callback = function(val) if val ~= "" then fcl("MakeSnoogleSaySomething", val) end end
 })
 
-local AnimGroup = Tabs.NPC:AddRightGroupbox("NPC Animations")
-AnimGroup:AddButton({ Text = "Reload NPC Animations", Func = function()
-    local anims = rs:FindFirstChild("Anims")
-    if anims then
-        local rigs = anims:FindFirstChild("RigAnims")
+local AnimGroup = Tabs.NPC:AddRightGroupbox("Анимации")
+AnimGroup:AddButton({ Text = "Перезагрузить анимации", Func = function()
+    local rigs = rs:FindFirstChild("Anims")
+    if rigs then
+        local ra = rigs:FindFirstChild("RigAnims")
         local npcs = ws:FindFirstChild("RigNPCS")
-        if rigs and npcs then
+        if ra and npcs then
             for _, npc in pairs(npcs:GetChildren()) do
-                local anim = rigs:FindFirstChild(npc.Name)
+                local anim = ra:FindFirstChild(npc.Name)
                 if anim and npc:FindFirstChild("Humanoid") then
                     local hum = npc:FindFirstChild("Humanoid")
                     if hum then
@@ -498,79 +438,66 @@ AnimGroup:AddButton({ Text = "Reload NPC Animations", Func = function()
                     end
                 end
             end
-            notify("Animations reloaded")
+            nfy("Анимации перезагружены")
         end
     end
 end})
 
 local PaintGroup = Tabs.NPC:AddRightGroupbox("Dream Journal Paintings")
 local function scanPaintings()
-    for _, child in pairs(PaintGroup:GetChildren()) do
-        if child:IsA("TextButton") then pcall(child.Destroy, child) end
-    end
     local paintings = ws:FindFirstChild("DreamJournalPaintings")
     if paintings then
         local entries = getDreamEntries()
-        PaintGroup:AddLabel("Paintings:", false)
         for _, child in pairs(paintings:GetChildren()) do
-            local dreamName = child.Name:gsub("Painting", "")
-            local collected = table.find(entries, dreamName)
+            local dn = child.Name:gsub("Painting", "")
+            local col = table.find(entries, dn)
             PaintGroup:AddButton({
-                Text = (collected and "[X] " or "[ ] ") .. dreamName,
-                Func = function()
-                    notify("Dream: " .. dreamName .. (collected and " (collected)" or " (not collected)"))
-                end
+                Text = (col and "[X] " or "[ ] ") .. dn,
+                Func = function() nfy("Dream: " .. dn .. (col and " (собран)" or " (не собран)")) end
             })
         end
     end
 end
-PaintGroup:AddButton({ Text = "Refresh", Func = scanPaintings })
+PaintGroup:AddButton({ Text = "Обновить", Func = scanPaintings })
 task.delay(1, scanPaintings)
--- ===== WORLD =====
-local WorldGroup = Tabs.World:AddLeftGroupbox("World Objects")
-local function scanMemories()
+
+-- ===================== WORLD =====================
+local WorldGroup = Tabs.World:AddLeftGroupbox("Объекты")
+WorldGroup:AddButton({ Text = "Сканировать воспоминания", Func = function()
     for _, c in pairs(ws:GetDescendants()) do
         if c.Name:match("MemoryRecollector") and c:IsA("BasePart") then
-            WorldGroup:AddButton({ Text = "Collect: " .. c.Name, Func = function()
-                fireSrv("GotMemory", c)
-            end})
+            WorldGroup:AddButton({ Text = "Собрать: " .. c.Name, Func = function() fsrv("GotMemory", c) end})
         end
     end
-end
-WorldGroup:AddButton({ Text = "Scan Memories", Func = scanMemories })
-task.delay(1, scanMemories)
-
-WorldGroup:AddDivider()
-WorldGroup:AddLabel("Piano Keys:")
-WorldGroup:AddButton({ Text = "Play random note", Func = function()
-    fireSrv("PianoKeyPressed", math.random(1, 88))
 end})
 
 WorldGroup:AddDivider()
+WorldGroup:AddLabel("Piano:")
+WorldGroup:AddButton({ Text = "Случайная нота", Func = function() fsrv("PianoKeyPressed", math.random(1, 88)) end})
+
+WorldGroup:AddDivider()
 WorldGroup:AddLabel("Pocket Doors:")
-local function scanPocketDoors()
+WorldGroup:AddButton({ Text = "Сканировать", Func = function()
     for _, c in pairs(ws:GetDescendants()) do
         if c.Name:match("PocketDoorDetector") and c:IsA("BasePart") then
-            WorldGroup:AddButton({ Text = "Door: " .. c.Name, Func = function()
-                fireSrv("TouchedDoorDetector", c.Name)
+            WorldGroup:AddButton({ Text = "Дверь: " .. c.Name, Func = function()
+                fsrv("TouchedDoorDetector", c.Name)
             end})
         end
     end
-end
-WorldGroup:AddButton({ Text = "Scan Doors", Func = scanPocketDoors })
-task.delay(1.5, scanPocketDoors)
+end})
 
 WorldGroup:AddDivider()
 WorldGroup:AddLabel("Moving Signs:")
-WorldGroup:AddToggle("ShakeSigns", { Text = "Shake signs", Default = false })
+WorldGroup:AddToggle("ShakeSigns", { Text = "Трясти вывески", Default = false })
 task.spawn(function()
     while task.wait(0.1) do
         if Toggles.ShakeSigns then
             local ss = ws:FindFirstChild("MovingSignStuff")
             if ss then
-                for _, child in pairs(ss:GetDescendants()) do
-                    if child:IsA("TextLabel") or child:IsA("ImageLabel") then
-                        child.Position = UDim2.new(0.5 + math.random(-10,10)/1000, 0, 0.5 + math.random(-10,10)/1000, 0)
+                for _, c in pairs(ss:GetDescendants()) do
+                    if c:IsA("TextLabel") or c:IsA("ImageLabel") then
+                        c.Position = UDim2.new(0.5 + math.random(-10,10)/1000, 0, 0.5 + math.random(-10,10)/1000, 0)
                     end
                 end
             end
@@ -579,119 +506,86 @@ task.spawn(function()
 end)
 
 WorldGroup:AddDivider()
-WorldGroup:AddLabel("Burnable Wood (need candle):")
-WorldGroup:AddButton({ Text = "Burn wood", Func = function()
+WorldGroup:AddLabel("Прочее:")
+WorldGroup:AddButton({ Text = "Поджечь дрова (нужна свеча)", Func = function()
     if lp.Character then
         local item = lp.Character:FindFirstChild("PickupableItem")
-        if item and item:GetAttribute("OriginalName") == "Candle" then
-            fireSrv("WoodBurnt")
-        else
-            notify("Need candle in hand!")
-        end
+        if item and item:GetAttribute("OriginalName") == "Candle" then fsrv("WoodBurnt")
+        else nfy("Нужна свеча в руке!") end
+    end
+end})
+WorldGroup:AddButton({ Text = "Сбежать из палатки", Func = function() fsrv("TentEscaped") end})
+WorldGroup:AddButton({ Text = "Tripwire", Func = function()
+    for _, c in pairs(ws:GetDescendants()) do
+        if c.Name == "DazeTripWire" and c:IsA("BasePart") then fsrv("TriggeredTripwire", c); break end
+    end
+end})
+WorldGroup:AddButton({ Text = "Lurking Shadow", Func = function()
+    for _, c in pairs(ws:GetDescendants()) do
+        if c.Name == "LurkingShadow" and c:IsA("BasePart") then fcl("LurkingTouched", c); break end
     end
 end})
 
 WorldGroup:AddDivider()
-WorldGroup:AddLabel("Tent / Tripwire / Lurking:")
-WorldGroup:AddButton({ Text = "Escape tent", Func = function() fireSrv("TentEscaped") end})
-WorldGroup:AddButton({ Text = "Trigger Tripwire", Func = function()
-    for _, c in pairs(ws:GetDescendants()) do
-        if c.Name == "DazeTripWire" and c:IsA("BasePart") then
-            fireSrv("TriggeredTripwire", c); break
-        end
-    end
-end})
-WorldGroup:AddButton({ Text = "Trigger Lurking", Func = function()
-    for _, c in pairs(ws:GetDescendants()) do
-        if c.Name == "LurkingShadow" and c:IsA("BasePart") then
-            fireCl("LurkingTouched", c); break
-        end
-    end
-end})
+WorldGroup:AddLabel("Выходы из миров:")
+WorldGroup:AddButton({ Text = "RightFogBarrier", Func = function() fsrv("GoToInfiZone") end})
+WorldGroup:AddButton({ Text = "FinalExit", Func = function() fsrv("FinalExited") end})
+WorldGroup:AddButton({ Text = "FinalEscapeBarrier", Func = function() fsrv("ExitTPF") end})
 
-WorldGroup:AddDivider()
-WorldGroup:AddLabel("World Exits:")
-WorldGroup:AddButton({ Text = "RightFogBarrier (Woodlands)", Func = function() fireSrv("GoToInfiZone") end})
-WorldGroup:AddButton({ Text = "FinalExit (Woodlands)", Func = function() fireSrv("FinalExited") end})
-WorldGroup:AddButton({ Text = "FinalEscapeBarrier (TPF)", Func = function() fireSrv("ExitTPF") end})
-WorldGroup:AddButton({ Text = "CliffsideSW Border", Func = function()
-    ws:SetAttribute("TouchedCliffsideBorder", true)
-    sayThing("It's too steep for me to walk over.")
-end})
-
-local CheatGroup = Tabs.World:AddRightGroupbox("Cheats")
+local CheatGroup = Tabs.World:AddRightGroupbox("Читы")
 CheatGroup:AddToggle("NoDeath", { Text = "God mode", Default = false })
 task.spawn(function()
     while task.wait(0.3) do
         if Toggles.NoDeath and lp.Character and lp.Character:FindFirstChild("Humanoid") then
             local hum = lp.Character.Humanoid
-            if hum.Health <= 0 and hum:GetState() == Enum.HumanoidStateType.Dead then
-                hum.Health = hum.MaxHealth
-                hum:ChangeState(Enum.HumanoidStateType.Running)
+            if hum.Health <= 0 then
+                hum.Health = hum.MaxHealth; hum:ChangeState(Enum.HumanoidStateType.Running)
             end
         end
     end
 end)
-
-CheatGroup:AddToggle("NoBlinkCD", { Text = "No Blink cooldown", Default = false })
+CheatGroup:AddToggle("NoBlinkCD", { Text = "No Blink CD", Default = false })
 task.spawn(function()
-    while task.wait(1) do
-        if Toggles.NoBlinkCD then
-            ws:SetAttribute("BlinkingBordering", nil)
-        end
-    end
+    while task.wait(1) do if Toggles.NoBlinkCD then ws:SetAttribute("BlinkingBordering", nil) end end
 end)
-
-CheatGroup:AddToggle("NoWarpCD", { Text = "No Warp cooldown", Default = false })
+CheatGroup:AddToggle("NoWarpCD", { Text = "No Warp CD", Default = false })
 task.spawn(function()
-    while task.wait(0.5) do
-        if Toggles.NoWarpCD then
-            ws:SetAttribute("WarpTeleportCooldown", nil)
-        end
-    end
+    while task.wait(0.5) do if Toggles.NoWarpCD then ws:SetAttribute("WarpTeleportCooldown", nil) end end
 end)
 
 CheatGroup:AddDivider()
-CheatGroup:AddButton({ Text = "Trigger Hopekiller", Func = function()
-    fireSrv("CaughtByDaze")
-end})
+CheatGroup:AddButton({ Text = "Hopekiller (Daze)", Func = function() fsrv("CaughtByDaze") end})
 CheatGroup:AddButton({ Text = "Rubberband push", Func = function()
     for _, c in pairs(ws:GetDescendants()) do
         if c.Name == "RubberbandBorder" and c:IsA("BasePart") then
             if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = lp.Character.HumanoidRootPart
-                hrp:ApplyImpulse(c.CFrame.LookVector * hrp.AssemblyMass * 30)
-            end
-            break
+                lp.Character.HumanoidRootPart:ApplyImpulse(c.CFrame.LookVector * lp.Character.HumanoidRootPart.AssemblyMass * 30)
+            end; break
         end
     end
 end})
-CheatGroup:AddButton({ Text = "Remove WallRemoveOnCompletion", Func = function()
+CheatGroup:AddButton({ Text = "Убрать стены Chapter 2", Func = function()
     for _, c in pairs(ws:GetChildren()) do
         if c.Name == "WallRemoveOnCompletion" and c:IsA("BasePart") then
             c.Transparency = 1; c.CanCollide = false
         end
-    end
-    notify("Walls removed")
+    end; nfy("Стены убраны")
 end})
-CheatGroup:AddButton({ Text = "Discard held item", Func = function()
+CheatGroup:AddButton({ Text = "Бросить предмет", Func = function()
     for _, c in pairs(ws:GetDescendants()) do
         if c.Name == "DiscardPickupables" and c:IsA("BasePart") then
-            if lp.Character and lp.Character:FindFirstChild("PickupableItem") then
-                local dp = c:GetAttribute("DropPos")
-                if dp then fireSrv("DropPickupable", dp) end
-            end
-            break
+            local dp = c:GetAttribute("DropPos")
+            if dp then fsrv("DropPickupable", dp) end; break
         end
     end
 end})
--- ===== EFFECTS =====
-local EffectGroup = Tabs.Effects:AddLeftGroupbox("Visual Effects")
-EffectGroup:AddButton({ Text = "Warp Effect (green)", Func = function()
+
+-- ===================== EFFECTS =====================
+local EffectGroup = Tabs.Effects:AddLeftGroupbox("Визуальные эффекты")
+EffectGroup:AddButton({ Text = "Warp Effect", Func = function()
     local we = ls:FindFirstChild("WarpEffect")
-    if we then
-        local c = we:Clone(); c.Parent = ls; c.Enabled = true
-        ts:Create(c, TweenInfo.new(1), {Brightness = 0, Saturation = 0, TintColor = Color3.fromRGB(255,255,255)}):Play()
+    if we then local c = we:Clone(); c.Parent = ls; c.Enabled = true
+        ts:Create(c, TweenInfo.new(1), {Brightness=0,Saturation=0,TintColor=Color3.fromRGB(255,255,255)}):Play()
         game:GetService("Debris"):AddItem(c, 1)
     end
 end})
@@ -703,10 +597,10 @@ EffectGroup:AddButton({ Text = "Fall Bright", Func = function()
     local fb = ls:FindFirstChild("FallBright")
     if fb then fb.Brightness = 1; ts:Create(fb, TweenInfo.new(1), {Brightness = 0}):Play() end
 end})
-
 EffectGroup:AddDivider()
-EffectGroup:AddLabel("Blink Effect:")
-EffectGroup:AddButton({ Text = "Play Blink", Func = function()
+
+EffectGroup:AddLabel("Blink:")
+EffectGroup:AddButton({ Text = "Воспроизвести Blink", Func = function()
     if not ScreenFX then return end
     local top = ScreenFX:FindFirstChild("BlinkFrameTop")
     local bot = ScreenFX:FindFirstChild("BlinkFrameBottom")
@@ -730,95 +624,89 @@ EffectGroup:AddButton({ Text = "Exposure 0.75 -> 0", Func = function()
 end})
 
 EffectGroup:AddDivider()
-EffectGroup:AddLabel("Death Messages:")
-EffectGroup:AddDropdown("DeathMsgSelect", {
-    Values = {"Lobby","Reality","Cloud Theater","Dream Elementary","Grassy Beach","The Twist","Homescape","The Past Future","Surreal Woodlands","The In-Between"},
-    Default = 1, Text = "Select dream"
-})
-EffectGroup:AddButton({ Text = "Show random message", Func = function()
-    local msgs = {
-        Lobby = {"How'd you even do that?"},
-        Reality = {"Not yet."},
-        ["Cloud Theater"] = {"Can you even die in a dream?", "There's nothing below the clouds.", "Dying does not progress.", "You can't die from tranquility."},
-        ["Dream Elementary"] = {"What's outside?", "Make it through your school day."},
-        ["Grassy Beach"] = {"Imagine far. Imagine far. Imagine far.", "It's so peaceful."},
-        ["The Twist"] = {"That didn't make you any closer to paradise."},
-        Homescape = {"Do you think you become apart of the house if you die?", "You lie down forever.", "The carpet is really, really soft."},
-        ["The Past Future"] = {"This city is supposed to be spotless. Clean.", "Don't just lie down like that.", "I can hear the buildings and the trees at the same time."},
-        ["Surreal Woodlands"] = {"Do you feel comfortable?", "Everything can watch you.", "This forest is way too quiet.", "The roots absorb."},
-        ["The In-Between"] = {"It gets colder and colder.", "The lights feel like sunlight but the water feels so cold."},
-    }
-    local dream = Options.DeathMsgSelect.Value
-    local m = msgs[dream]
-    if m and #m > 0 then sayThing(m[math.random(1, #m)]) end
+EffectGroup:AddLabel("Сообщения смерти:")
+local deathMsgMap = {
+    Lobby = {"How'd you even do that?"},
+    Reality = {"Not yet."},
+    ["Cloud Theater"] = {"Can you even die in a dream?","There's nothing below the clouds.","Dying does not progress.","You can't die from tranquility."},
+    ["Dream Elementary"] = {"What's outside?","Make it through your school day."},
+    ["Grassy Beach"] = {"Imagine far.","It's so peaceful."},
+    ["The Twist"] = {"That didn't make you any closer to paradise."},
+    Homescape = {"Do you think you become apart of the house if you die?","You lie down forever.","The carpet is really, really soft."},
+    ["The Past Future"] = {"This city is supposed to be spotless.","I can hear the buildings and the trees at the same time."},
+    ["Surreal Woodlands"] = {"Do you feel comfortable?","Everything can watch you.","The forest is way too quiet.","The roots absorb."},
+    ["The In-Between"] = {"It gets colder and colder.","The lights feel like sunlight but the water feels so cold."},
+}
+local dreamKeys = {}
+for k, _ in pairs(deathMsgMap) do table.insert(dreamKeys, k) end
+EffectGroup:AddDropdown("DeathMsgSelect", { Values = dreamKeys, Default = 1, Text = "Дрим" })
+EffectGroup:AddButton({ Text = "Показать сообщение", Func = function()
+    local msgs = deathMsgMap[Options.DeathMsgSelect.Value]
+    if msgs and #msgs > 0 then say(msgs[math.random(1, #msgs)]) end
 end})
 
-local SoundEffectGroup = Tabs.Effects:AddRightGroupbox("Sound Effects")
-SoundEffectGroup:AddButton({ Text = "Warp Sound", Func = function()
-    local s = remote("WarpSound"); if s then s:Play() end
+local SoundGroup = Tabs.Effects:AddRightGroupbox("Звуки")
+SoundGroup:AddButton({ Text = "Warp Sound", Func = function()
+    local s = rmt("WarpSound"); if s then s:Play() end
 end})
-SoundEffectGroup:AddButton({ Text = "Land On Ground", Func = function()
+SoundGroup:AddButton({ Text = "Land On Ground", Func = function()
     local s = rs:FindFirstChild("LandOnGroundSFX"); if s then s:Play() end
 end})
-SoundEffectGroup:AddButton({ Text = "Land In Water", Func = function()
+SoundGroup:AddButton({ Text = "Land In Water", Func = function()
     local s = rs:FindFirstChild("LandInWaterSFX"); if s then s:Play() end
 end})
-
-SoundEffectGroup:AddDivider()
-SoundEffectGroup:AddLabel("Vote Sounds:")
-local function findSound(name)
+SoundGroup:AddDivider()
+SoundGroup:AddLabel("Звуки голосования:")
+local function findSnd(name)
     for _, c in pairs(SpeechGui:GetDescendants()) do
         if c.Name == name and c:IsA("Sound") then return c end
     end
 end
-SoundEffectGroup:AddButton({ Text = "Vote Start", Func = function()
-    local s = findSound("VoteStart"); if s then s:Play() end
+SoundGroup:AddButton({ Text = "Vote Start", Func = function()
+    local s = findSnd("VoteStart"); if s then s:Play() end
 end})
-SoundEffectGroup:AddButton({ Text = "Vote Pick", Func = function()
-    local s = findSound("VoteSoundPick"); if s then s:Play() end
+SoundGroup:AddButton({ Text = "Vote Pick", Func = function()
+    local s = findSnd("VoteSoundPick"); if s then s:Play() end
 end})
-SoundEffectGroup:AddButton({ Text = "Vote Hover", Func = function()
-    local s = findSound("VoteHover"); if s then s:Play() end
+SoundGroup:AddButton({ Text = "Vote Hover", Func = function()
+    local s = findSnd("VoteHover"); if s then s:Play() end
 end})
-
-SoundEffectGroup:AddDivider()
-SoundEffectGroup:AddLabel("Dialogue Sounds:")
-SoundEffectGroup:AddButton({ Text = "Type Sound", Func = function()
+SoundGroup:AddDivider()
+SoundGroup:AddLabel("Звуки диалогов:")
+SoundGroup:AddButton({ Text = "Type Sound", Func = function()
     local mf = SpeechGui:FindFirstChild("MainFrame")
     if mf then local s = mf:FindFirstChild("TypeSound"); if s then s:Play() end end
 end})
-SoundEffectGroup:AddButton({ Text = "SubD Type", Func = function()
+SoundGroup:AddButton({ Text = "SubD Type", Func = function()
     local mf = SpeechGui:FindFirstChild("MainFrame")
     if mf then local s = mf:FindFirstChild("SubDTypeSound"); if s then s:Play() end end
 end})
-SoundEffectGroup:AddButton({ Text = "Objective", Func = function()
+SoundGroup:AddButton({ Text = "Objective", Func = function()
     local mf = SpeechGui:FindFirstChild("MainFrame")
     if mf then local s = mf:FindFirstChild("ObjectiveSound"); if s then s:Play() end end
 end})
-SoundEffectGroup:AddButton({ Text = "Info SFX", Func = function()
+SoundGroup:AddButton({ Text = "Info SFX", Func = function()
     local mf = SpeechGui:FindFirstChild("MainFrame")
     if mf then local s = mf:FindFirstChild("InfoSFX"); if s then s:Play() end end
 end})
 
-local DiaGroup = Tabs.Effects:AddRightGroupbox("Dialogue Debug")
+local DiaGroup = Tabs.Effects:AddRightGroupbox("Отладка диалогов")
 DiaGroup:AddLabel("DialogueState: " .. tostring(ws:GetAttribute("DialogueState")))
 DiaGroup:AddLabel("Voters: " .. tostring(ws:GetAttribute("CurrentDialogueVoters")))
 DiaGroup:AddDivider()
-DiaGroup:AddLabel("Fire DialogueMoveOn:")
-DiaGroup:AddButton({ Text = "MoveOn (Left)", Func = function() fireSrv("DialogueMoveOn", "Left") end})
-DiaGroup:AddButton({ Text = "MoveOn (Right)", Func = function() fireSrv("DialogueMoveOn", "Right") end})
-DiaGroup:AddButton({ Text = "MoveOn (default)", Func = function() fireSrv("DialogueMoveOn") end})
+DiaGroup:AddLabel("DialogueMoveOn:")
+DiaGroup:AddButton({ Text = "MoveOn (Left)", Func = function() fsrv("DialogueMoveOn", "Left") end})
+DiaGroup:AddButton({ Text = "MoveOn (Right)", Func = function() fsrv("DialogueMoveOn", "Right") end})
+DiaGroup:AddButton({ Text = "MoveOn (default)", Func = function() fsrv("DialogueMoveOn") end})
 DiaGroup:AddDivider()
 DiaGroup:AddLabel("DeathEncounter: " .. tostring(ws:GetAttribute("DeathEncounter") or "none"))
-DiaGroup:AddButton({ Text = "Reset DeathEncounter", Func = function()
-    ws:SetAttribute("DeathEncounter", nil)
-end})
+DiaGroup:AddButton({ Text = "Сбросить", Func = function() ws:SetAttribute("DeathEncounter", nil) end})
 
--- ===== UI SETTINGS =====
-local MenuGroup = Tabs.UI:AddLeftGroupbox("Menu")
-MenuGroup:AddButton({ Text = "Unload", Func = function() Library:Unload() end })
-MenuGroup:AddLabel("Menu key"):AddKeyPicker("MenuKeybind", {
-    Default = "End", NoUI = true, Text = "Menu keybind"
+-- ===================== UI =====================
+local MenuGroup = Tabs.UI:AddLeftGroupbox("Меню")
+MenuGroup:AddButton({ Text = "Выгрузить", Func = function() Library:Unload() end })
+MenuGroup:AddLabel("Клавиша меню"):AddKeyPicker("MenuKeybind", {
+    Default = "End", NoUI = true, Text = "Клавиша меню"
 })
 Library.ToggleKeybind = Options.MenuKeybind
 
@@ -833,6 +721,6 @@ ThemeManager:ApplyToTab(Tabs.UI)
 
 updateTrackLabel()
 
-Library:SetWatermark(("NullFire Hub | ABD | %%s fps | %%s ms"):format(60, 0))
+Library:SetWatermark(("NullFire Hub | ABD | %s fps | %s ms"):format(60, 0))
 Library:OnUnload(function() Library.Unloaded = true end)
 SaveManager:LoadAutoloadConfig()
