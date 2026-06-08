@@ -1,0 +1,18 @@
+﻿{
+  "loaderVersion": "2.0",
+  "repository": "Unwalker1337/Nullfire-rework",
+  "defaultScript": "SoundSpy",
+  "places": {
+    "template": {
+      "name": "Template Place",
+      "scripts": ["SoundSpy"]
+    }
+  },
+  "scripts": {
+    "SoundSpy": {
+      "name": "SoundSpy",
+      "description": "Audio debugger — find all sounds in place",
+      "path": "scripts/SoundSpy.lua"
+    }
+  }
+}
