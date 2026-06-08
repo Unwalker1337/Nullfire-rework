@@ -9,7 +9,6 @@ Nullfire-rework/
 ├── loader.lua          — Главный загрузчик (вставь в executor)
 ├── places.json         — Конфиг: привязка скриптов к place ID
 ├── scripts/            — Папка со скриптами
-│   └── SoundSpy.lua    — Отладка звуков
 └── places/             — Скрипты под конкретные места
 ```
 
@@ -17,11 +16,7 @@ Nullfire-rework/
 
 1. Вставь `loader.lua` в executor
 2. Загрузчик сам определит place ID и загрузит нужные скрипты
-3. Или добавь новые place ID в `places.json`
-
-## Где брать Place ID
-
-`game.PlaceId` в игре.
+3. Добавь новые place ID и скрипты в `places.json`
 
 ## Добавление нового места
 
@@ -30,6 +25,8 @@ Nullfire-rework/
 ```json
 "123456789": {
   "name": "Название игры",
-  "scripts": ["SoundSpy"]
+  "scripts": ["scriptName"]
 }
 ```
+
+Скрипты добавляй в папку `scripts/` и указывай путь в `places.json`.
